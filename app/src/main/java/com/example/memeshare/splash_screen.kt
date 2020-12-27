@@ -4,7 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
-import com.example.sharememes.R
+import com.example.memeshare.R
 
 class splash_screen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

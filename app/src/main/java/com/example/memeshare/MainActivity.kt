@@ -1,4 +1,4 @@
-package com.example.memeshare
+package com.example.sharememes
 
 import android.Manifest
 import android.annotation.TargetApi
@@ -9,27 +9,43 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.drawable.Drawable
+import android.media.Image
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import android.provider.MediaStore
+import android.view.*
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.example.memeshare.R
+import com.squareup.picasso.Picasso
+import java.io.ByteArrayOutputStream
 import java.io.File
-import javax.sql.DataSource
+import java.lang.Math.abs
 
-class MainActivity : AppCompatActivity() {
 
+class MainActivity : AppCompatActivity() , GestureDetector.OnGestureListener{
+
+    lateinit var gestureDetector: GestureDetector              // for onTouchEvent
+    var x1:Float=0.0f
+    var x2:Float=0.0f
+    var y1:Float=0.0f
+    var y2:Float=0.0f
+
+//    companion object{
+//        const val MIN_DISTANCE = 150
+//    }
 
     var currentMemeUrl: String? = null
 
@@ -38,7 +54,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         loadMeme()
+
+        gestureDetector = GestureDetector(this,this)  ///   for onTouchEvent
+
+
     }
+
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_item,menu)
@@ -47,32 +69,34 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when(item.itemId){
-            R.id.logout ->{
-                Toast.makeText(this,"LOGOUT....", Toast.LENGTH_LONG).show()
-                val builder = AlertDialog.Builder(this)
-                builder.setTitle("LOGOUT")
-                builder.setMessage("Are You Sure ")
-                builder.setIcon(R.drawable.logout)
-                builder.setPositiveButton("Yes"){dialogInterface, which ->
-                    Toast.makeText(applicationContext,"clicked yes", Toast.LENGTH_LONG).show()
-                }
-                builder.setNegativeButton("No"){dialogInterface, which ->
-                    Toast.makeText(applicationContext,"clicked No", Toast.LENGTH_LONG).show()
-                }
-                val alertDialog: AlertDialog = builder.create()
-                alertDialog.setCancelable(false)
-                alertDialog.show()
-                true
-            }
+//            R.id.logout ->{
+//
+//                /////  Alert Dialog Box
+//
+//                Toast.makeText(this,"LOGOUT....",Toast.LENGTH_LONG).show()
+//                val builder = AlertDialog.Builder(this)
+//                builder.setTitle("LOGOUT")
+//                builder.setMessage("Are You Sure ")
+//                builder.setIcon(R.drawable.logout)
+//                builder.setPositiveButton("Yes"){dialogInterface, which ->
+//                    Toast.makeText(applicationContext,"clicked yes",Toast.LENGTH_LONG).show()
+//                }
+//                builder.setNegativeButton("No"){dialogInterface, which ->
+//                    Toast.makeText(applicationContext,"clicked No",Toast.LENGTH_LONG).show()
+//                }
+//                val alertDialog: AlertDialog = builder.create()
+//                alertDialog.setCancelable(false)
+//                alertDialog.show()
+//                true
+//            }
             R.id.download ->{
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                     askPermissions()
                 } else {
 //                    Toast.makeText(this,"ELSE DOWNLOAD....",Toast.LENGTH_LONG).show()
-                    Toast.makeText(this,"DOWNLOADING ${currentMemeUrl}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this,"DOWNLOADING   ${currentMemeUrl}", Toast.LENGTH_LONG).show()
                     downloadImage(currentMemeUrl.toString())
                 }
-
                 //               Toast.makeText(this,"DOWNLOADING ${currentMemeUrl}",Toast.LENGTH_LONG).show()
 
                 true
@@ -200,8 +224,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun loadMeme() {
-        nextButton.isEnabled = false
-        shareButton.isEnabled = false
+        //nextButton.isEnabled = false
+        //shareButton.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
 
@@ -212,7 +236,7 @@ class MainActivity : AppCompatActivity() {
             { response ->
                 currentMemeUrl = response.getString("url")
 
-                Glide.with(this).load(currentMemeUrl).listener(object : RequestListener<Drawable> {
+                Glide.with(this).load(currentMemeUrl).listener(object : RequestListener<Drawable>{
                     override fun onResourceReady(
                         resource: Drawable?,
                         model: Any?,
@@ -220,7 +244,9 @@ class MainActivity : AppCompatActivity() {
                         dataSource: DataSource?,
                         isFirstResource: Boolean
                     ): Boolean {
-
+                        progressBar.visibility = View.GONE
+                        //nextButton.isEnabled = true
+                        //shareButton.isEnabled = true
                         return false
                     }
 
@@ -248,12 +274,14 @@ class MainActivity : AppCompatActivity() {
         loadMeme()
     }
 
-    fun shareMeme(view: View) {
+
+
+    fun shareMeme() {
         val i = Intent(Intent.ACTION_SEND)
         i.type = "text/plain"
         i.putExtra(Intent.EXTRA_TEXT, "Hi, checkout this meme $currentMemeUrl")
         startActivity(Intent.createChooser(i, "Share this meme with"))
-        Toast.makeText(this,"SHAREING  ${currentMemeUrl}", Toast.LENGTH_LONG).show()
+        Toast.makeText(this,"SHAREING  ${currentMemeUrl}",Toast.LENGTH_LONG).show()
 
 
 //        Picasso.with(this).load(currentMemeUrl).into(memeImageView)
@@ -263,6 +291,94 @@ class MainActivity : AppCompatActivity() {
 //        i.type = "image/*"
 //        i.putExtra(Intent.EXTRA_STREAM, getimageuri( this, image!!) )
 //        startActivity(Intent.createChooser(i, "Share this meme with ..."))
+    }
+
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+
+        gestureDetector.onTouchEvent(event)
+
+        when (event?.action){
+            0->{
+                x1=event.x
+                y1=event.y
+            }
+            1->{
+                x2=event.x
+                y2=event.y
+                val valueX:Float=x2-x1
+                val valueY:Float=y2-y1
+                if(abs(valueX)>10){
+                    if(x2>x1){
+                        Toast.makeText(this,"Right Swap",Toast.LENGTH_LONG).show()
+
+                    }else{
+                        Toast.makeText(this,"Left Swap",Toast.LENGTH_LONG).show()
+                        loadMeme()
+
+                    }
+                }else{
+                    if(y2>y1){
+                        Toast.makeText(this,"Bottom Swap",Toast.LENGTH_LONG).show()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                            askPermissions()
+                        } else {
+//                    Toast.makeText(this,"ELSE DOWNLOAD....",Toast.LENGTH_LONG).show()
+                            Toast.makeText(this,"DOWNLOADING ${currentMemeUrl}",Toast.LENGTH_LONG).show()
+                            downloadImage(currentMemeUrl.toString())
+                        }
+
+
+                    }else{
+                        Toast.makeText(this,"Top Swap",Toast.LENGTH_LONG).show()
+                        shareMeme()
+                    }
+                }
+
+            }
+
+        }
+        return super.onTouchEvent(event)
+    }
+
+    override fun onDown(e: MotionEvent?): Boolean {
+        //TODO("Not yet implemented")
+        return false
+    }
+
+    override fun onShowPress(e: MotionEvent?) {
+        //TODO("Not yet implemented")
+
+    }
+
+    override fun onSingleTapUp(e: MotionEvent?): Boolean {
+        //TODO("Not yet implemented")
+        return false
+    }
+
+    override fun onScroll(
+        e1: MotionEvent?,
+        e2: MotionEvent?,
+        distanceX: Float,
+        distanceY: Float
+    ): Boolean {
+        //TODO("Not yet implemented")
+        return false
+    }
+
+    override fun onLongPress(e: MotionEvent?) {
+        //TODO("Not yet implemented")
+
+    }
+
+    override fun onFling(
+        e1: MotionEvent?,
+        e2: MotionEvent?,
+        velocityX: Float,
+        velocityY: Float
+    ): Boolean {
+        //TODO("Not yet implemented")
+        return false
     }
 
 
@@ -282,8 +398,5 @@ class MainActivity : AppCompatActivity() {
 //        memeImageView.draw(canvas)
 //        return bitmap
 //    }
-
-
-
-
 }
+
